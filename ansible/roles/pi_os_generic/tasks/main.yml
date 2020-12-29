@@ -1,0 +1,94 @@
+---
+- name: Wait for system to become reachabe
+  wait_for_connection:
+
+- name: Ensure key is in  ~/.ssh/authorized_keys
+  authorized_key:
+    user: pi
+    state: present
+    key: '{{ item }}'
+  with_file:
+    - ~/.ssh/id_rsa.pub
+
+- name: install apps which I commonly need
+  apt:
+    update_cache: yes
+    name:
+      - tcpdump
+      - git
+      - dnsutils
+    state: present
+
+- name: change pi default password
+  user:
+    name: pi
+    update_password: always
+    password: "{{ pi_password|password_hash('sha512') }}"
+
+- name: Set hostname
+  hostname:
+    name: "{{ hostname }}"
+
+- name: fix /etc/hosts
+  lineinfile:
+    path: /etc/hosts
+    regexp: '^127.0.0.1'
+    line: '127.0.0.1  localhost {{ inventory_hostname }} {{ hostname }}'
+    state: present
+
+# use rasp-config
+
+- name: rasp-conf ansible managed
+  copy:
+    dest: rasp-config_ansible_managed
+    content: "set locales via raspi-config: {{ LOCALE }} \nset timezone via raspi-config: {{ TIMEZONE }}\nset kboardlayout via raspi-config: {{ XKBLAYOUT }}\nWifi enabled set to {{ WIFI_ENABLED }}\nset wifi country code via raspi-config: {{ WIFI_COUNTRY }}\nset wifi ssid via raspi-config: {{ WIFI_SSID }}\nset wifi psk via raspi-config: {{ WIFI_PSK }}\n"
+  register: status
+  
+- debug: 
+    msg: "{{ status.changed }}"
+
+#4 Localisation Options
+#I1 Change Locale
+- name: Change locale
+  shell: "raspi-config nonint do_change_locale {{ LOCALE }}"
+  when: status.changed == true
+
+#I2 Change Timezone
+- name: Change timezone
+  shell: "raspi-config nonint do_change_timezone {{ TIMEZONE }}"
+  when: status.changed == true
+
+#I3 Change Keyboard Layout
+- name: Change keyboard layout
+  shell: "raspi-config nonint do_configure_keyboard {{ XKBLAYOUT }}"
+  when: status.changed == true
+
+#I4 Set Wifi country
+- name: Set WiFi country
+  shell: "raspi-config nonint do_wifi_country {{ WIFI_COUNTRY }}"
+  when: 
+    - status.changed == "true"
+    - WIFI_ENABLED == "true"
+
+#4 Network Options
+#N2 Set Wifi credentials
+- name: Set WiFi credentials
+  shell: "raspi-config nonint do_wifi_ssid_passphrase {{ WIFI_SSID }} {{ WIFI_PSK }}"
+  when: 
+    - status.changed == "true"
+    - WIFI_ENABLED == "true"
+
+# disable autostart of raspi-config
+- name: disable autostart of raspi-config
+  file:
+    path: /etc/xdg/autostart/piwiz.desktop
+    state: absent
+
+# disable overscan to enable just change state to absent
+- name: disable overscan
+  lineinfile:
+    path: /boot/config.txt
+    regexp: '^disable_overscan=1'
+    insertafter: '^#disable_overscan=1'
+    line: 'disable_overscan=1'
+    state: present

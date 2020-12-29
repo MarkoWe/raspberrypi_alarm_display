@@ -1,0 +1,72 @@
+#!/usr/bin/python
+# -*- coding: utf8 -*-
+"""
+    Author: Marko Weiß
+    Date: 23.12.2020
+"""
+
+import logging
+import logging.handlers
+import sys
+import json
+import requests
+import argparse
+
+
+def main(ort,stra,hsnr):
+    try:
+        # set config for logging
+        logging.basicConfig(
+            #filename=log_file,
+            level=logging.DEBUG,
+            format='%(asctime)s.%(msecs)03d %(levelname)s %(module)s - %(funcName)s: %(message)s',
+            datefmt="%Y-%m-%d %H:%M:%S")
+        #create logger
+        mylogger = logging.getLogger('map_api.py')
+        # use local log device -> goes to syslog
+        handler = logging.handlers.SysLogHandler(address = '/dev/log')
+
+        mylogger.addHandler(handler)
+
+        # log python version which is used
+        mylogger.info("Python version: {}".format(sys.version))
+
+        # URL for geocode API call
+        #bounds=southwest|northeast
+        url = "https://maps.googleapis.com/maps/api/geocode/json?address={address}&languague=de&bounds={{ gbound_southwest }}|{{ gbound_northeast }}&region=de&key={{ gapi_key }}"
+        
+        # remove (NR) from ort because google api doesn't interpret it correctly
+        ort = ort.replace("(NR)","")
+        falarm = "{},{}+{}".format(ort,stra,hsnr)
+        falarm = falarm.replace(" ","").replace("ö","oe").replace("ü","ue").replace("ß","ss").replace("ä","ae")
+
+        url = url.format(address=falarm)
+        #print (url)
+        # Send request to geocode api and store answer in phython object
+        GetResp = requests.get(url, verify=True)
+        mylogger.debug("Send headers: {} ".format(GetResp.request.headers))
+        mylogger.debug("GET response status code: {}".format(GetResp.status_code))
+        mylogger.debug("GET response data: {}".format(GetResp.json()))
+
+        # Change json structure into phyton oject structure
+        data = GetResp.json()
+        
+        # check if query was successfully 
+        if data['status'] == "OK":
+            # dict value of dict key results is list. In the list the first index is a dict. Within this dict key formatted_address is availalbe.
+            address = data['results'][0]['formatted_address']
+            faddress = address.replace(" ","+")
+            print (faddress)
+        
+    except Exception as e:
+        logger.exception("Exception in {}: {}".format(__file__, e))
+        sys.exit(1)
+    
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='This tool creates google embeeded geo api iframe code for a specific address')
+    requiredNamed = parser.add_argument_group('required named arguments')
+    requiredNamed.add_argument('-o', '--ort', help='Ort', required=True)
+    requiredNamed.add_argument('-s', '--street', help='Strasse', required=True)
+    requiredNamed.add_argument('-t', '--hausnr', help='Hausnummer', required=True)
+    args = parser.parse_args()
+    main(args.ort,args.street,args.hausnr)

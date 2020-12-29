@@ -1,0 +1,10 @@
+---
+hostname: raspberry
+pi_password: "hnJyE89kpQ"
+LOCALE: "de_DE.UTF-8"
+TIMEZONE: "Europe/Berlin"
+XKBLAYOUT: "de"
+WIFI_ENABLED: "true"
+WIFI_COUNTRY: "DE"
+WIFI_SSID: "NOVALIDSSID"
+WIFI_PSK: "99999999999999"

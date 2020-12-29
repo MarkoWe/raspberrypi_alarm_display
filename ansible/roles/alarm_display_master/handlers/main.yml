@@ -1,0 +1,14 @@
+---
+- name: restart smstools
+  service:
+    name: smstools
+    state: restarted
+
+- name: init table
+  community.mysql.mysql_db:
+    name: "{{ db_name }}"
+    state: import
+    login_user: "{{ db_user }}"
+    login_password: "{{ db_pass }}"
+    target: /home/pi/temp.sql
+  ignore_errors: yes

@@ -1,0 +1,19 @@
+---
+- name: set up alarm display slave
+  hosts: piumkleide
+  gather_facts: yes
+  become: yes
+  remote_user: pi
+    
+  # check also defaults of the different roles, you can set even more parameters
+  vars:
+    - hostname: "pi-umkleide"
+   #- DISPLAY_TIMER: "7200" #set how long display will stay active after alarm was received in seconds
+    - WIFI_ENABLED: "false" # enable wifi, false or true
+    #- WIFI_SSID: "your wifi ssd" # set wifi SSD
+    #- WIFI_PSK: "your wifi psk" # set wifi pre shared key
+
+  roles:
+  - pi_os_generic
+  - alarm_display_generic
+  - alarm_display_slave

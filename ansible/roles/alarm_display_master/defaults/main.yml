@@ -1,0 +1,13 @@
+---
+db_user: dbuser
+db_pass: dbuserpass
+db_root_pass: dbrootpass
+db_name: dbname
+gapi_key: "your_api_key" # google api key with access to geocode api & embedded maps api
+# primaraly search in the area for which your fire department is responsible for
+# due to the fact that leitstelle is not sending plz, this is required because in germany, in many cases the combination of streetname + villiage/cityname is not unique. 
+gbound_southwest: "50.538550,7.301354" # set southwest bound of your "Einsatzgebiet"
+gbound_northeast: "50.726954,7.503647" # set northeast bound of your "Einsatzgebiet" 
+origin_address: "Eichwiese+1,56410+Montabaur" # set address of your fire department
+SIM_PIN: "4516"
+SMSC: "491710760000"

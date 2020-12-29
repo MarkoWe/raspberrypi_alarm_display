@@ -1,0 +1,18 @@
+[pihalle]
+pi-halle.fritz.box
+#raspberrypi.fritz.box
+
+[piumkleide]
+pi-umkleide.fritz.box
+#raspberrypi.fritz.box
+
+[raspberry:children]
+pihalle
+piumkleide
+
+[raspberry:vars]
+ansible_connection=ssh
+ansible_user=pi
+ansible_ssh_pass=raspberry
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+ansible_python_interpreter=/usr/bin/python3

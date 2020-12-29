@@ -1,0 +1,21 @@
+#!/bin/bash
+# managed by {{ ansible_host }}
+# if monitor is in state off (dkms) power off hdmi port 
+
+var=$(xset -display :0 q | grep "Monitor is Off")
+
+#if [ -z "$var" ]
+#then
+#      echo "\$var is empty"
+#else
+#      echo "\$var is NOT empty"
+#fi
+
+#check if $var is empty which means Monitor is not off.
+if ! [ -z "$var" ]; then
+# power off hdmi port
+/usr/bin/vcgencmd display_power 0
+# close chrome gracefully
+export DISPLAY=":0"
+/usr/bin/wmctrl -c Chromium
+fi

@@ -1,0 +1,54 @@
+---
+
+# install helper applications
+- name: install generic alarm display apps
+  apt:
+    name:
+      - unclutter #helper to hide cursor
+      - wmctrl #window manager, e.g. to close gracefully apps
+      - xdotool #xdotool, e.g. to simulate mouse movement
+      - pcmanfm #helper to set desktop wallpaper
+    state: present
+
+# set wallpaper
+- name: copy wallpaper
+  copy:
+    src: background.jpg
+    dest: /home/pi/background.jpg
+    owner: pi
+    group: pi
+  notify: set wallpaper
+
+# change screensaver, blank screen, monitor standby settings
+- name: change lxde seetings
+  template:
+    src: autostart.j2
+    dest: /etc/xdg/lxsession/LXDE-pi/autostart
+  notify:
+    - delete local autostart
+    - reboot
+
+# script to power off off hdmi port
+- name: copy script power off hdmi port
+  template:
+    src: sms_event_shut_display.sh.j2
+    dest: /usr/local/bin/sms_event_shut_display.sh
+    mode: 0755
+
+# cron to trigger hdmi power off script
+- name: add cronjob to switch off hdmi port
+  cron:
+    name: "power_off_hdmi_port"
+    #hour: "*/1" # run every hour
+    special_time: "hourly"
+    job: "/usr/local/bin/sms_event_shut_display.sh &> /dev/null"
+    user: pi
+
+# reboot once in a month,just for case something get stucked
+- name: add cronjob to restart pi once in a month
+  cron:
+    name: "reboot"
+    day: "1"
+    hour: "3"
+    job: "/sbin/shutdown -r now"
+    user: root

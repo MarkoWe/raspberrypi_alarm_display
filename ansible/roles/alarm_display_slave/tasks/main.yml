@@ -1,0 +1,7 @@
+---
+# copy scripts which is used to display alarms which were send via sms
+- name: copy script sms_event_pi
+  copy:
+    src: sms_event_pi.sh
+    dest: /usr/local/bin/sms_event_pi.sh
+    mode: 0755

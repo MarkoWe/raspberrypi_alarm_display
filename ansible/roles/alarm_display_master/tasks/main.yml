@@ -1,0 +1,115 @@
+---
+- name: install alarm display apps for master
+  apt:
+    name:
+      - smstools #app to receive sms from usb modem
+      - usb-modeswitch #needed to for communication to usb modem
+      - mariadb-server 
+      - python3-pymysql
+      - python-pymysql
+      - apache2
+    state: present
+
+# autostart smstools
+- name: add smsd to autostart
+  service:
+    name: smstools
+    enabled: yes
+    state: started
+
+# autostart mariadb server
+- name: add mysqld to autostart
+  service:
+    name: mysqld
+    enabled: yes
+    state: started
+
+# configure smstools
+- name: configure smstools
+  template:
+    src: smsd.conf.j2
+    dest: /etc/smsd.conf
+    backup: yes
+  notify: restart smstools
+
+# enable sudo for smsd user; 
+# smsd triggers script if sms is received but the main script has to be run as pi user (desktop enviroment) therefore smsd needs password less sudo
+- name: enable sudo without password for smsd
+  copy:
+    dest: /etc/sudoers.d/010_smsd-nopasswd
+    content: "smsd ALL=(ALL) NOPASSWD: ALL\n"
+    owner: root
+    group: root
+    mode: 0440
+
+# script which is used to change script execution user from smsd(sms deamon) to pi user
+- name: copy script sms_event
+  copy:
+    src: sms_event.sh
+    dest: /usr/local/bin/sms_event.sh
+    mode: 0755
+
+# scripts which is used to display alarms which were send via sms
+- name: copy script sms_event_pi
+  template:
+    src: sms_event_pi.sh.j2
+    dest: /usr/local/bin/sms_event_pi.sh
+    mode: 0755
+
+# script map python script
+- name: map api python script
+  template:
+    src: map_api.py.j2
+    dest: /usr/local/bin/map_api.py
+    mode: 0755
+
+# bootstrap is used for website visualisation therefore it has to be copied into apache directory
+- name: copy include
+  copy:
+    src: include
+    dest: /var/www/html
+    #mode: 0755
+    #directory_mode: 0755
+    #owner: pi
+    #group: pi
+
+# enable key based ssh access between pi-halle & pi-umkleide
+
+#ssh-keyscan -H pi-umkleide >> ~/.ssh/known_hosts
+#copy:
+  #dest: sshpassword.txt
+  #content: 'password'
+#sshpass -f sshpassword.txt ssh-copy-id pi@pi-umkleide
+
+
+# create db credential file for root
+- name: create my.cnf 
+  copy:
+    dest: /root/.my.cnf
+    content: "[client]\nuser=root\npassword={{ db_root_pass }}\n" 
+
+# create database user
+- name: create database user 
+  community.mysql.mysql_user:
+    login_user: root
+    login_password: "{{ db_root_pass }}"
+    name: "{{ db_user }}"
+    password: "{{ db_pass }}"
+    priv: '*.*:ALL'
+    state: present
+    login_unix_socket: "/var/run/mysqld/mysqld.sock"
+
+# create database
+- name: create database
+  mysql_db:
+    login_user: "{{ db_user }}"
+    login_password: "{{ db_pass }}"
+    name: "{{ db_name }}"
+    state: present
+
+# database dump file to initial create table
+- name: database dump file
+  copy:
+    src: init.sql
+    dest: /home/pi/temp.sql
+  notify: init table

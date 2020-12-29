@@ -1,0 +1,25 @@
+---
+- name: set up alarm display master
+  hosts: pihalle
+  gather_facts: yes
+  become: yes
+  remote_user: pi
+    
+  # check also defaults of the different roles, you can set even more parameters
+  vars:
+    - hostname: "pi-halle"
+    #- DISPLAY_TIMER: "7200" #set how long display will stay active after alarm was received in seconds
+    #- WIFI_ENABLED: "false" # enable wifi, false or true
+    #- WIFI_SSID: "your ssid" # set wifi SSD
+    #- WIFI_PSK: "your PSK" # set wifi pre shared key
+    #- gapi_key: "your google api_key" # api key needs access to gecode api & embeeded maps api"
+    #- gbound_southwest: "50.538550,7.301354" # set southwest bound of your "Einsatzgebiet"
+    #- gbound_northeast: "50.726954,7.503647" # set northeast bound of your "Einsatzgebiet" 
+    #- origin_address: "your fire department" # set address of your fire department
+    #- SIM_PIN: "your SIM PIN"
+    #- SMSC: "your mobile operator SMSC address" # usally not mandatory to receive a SMS
+
+  roles:
+  - pi_os_generic
+  - alarm_display_generic
+  - alarm_display_master

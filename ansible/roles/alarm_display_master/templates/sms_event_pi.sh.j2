@@ -1,0 +1,140 @@
+#!/bin/bash
+# format received sms
+# write it to database
+# display it 
+
+exec 1> >(logger -s -t $(basename $0)) 2>&1
+logger "run sms_event_pi.sh"
+
+modus="$1"
+file="$2"
+
+# only in case SMS was received
+if [ $modus = "RECEIVED" ]; then
+
+
+sms_inhalt=$( tail -n 1 $file )
+von=$( head -n 1 $file )
+# delete from within the string
+von="${von//From:/}"
+# delete spaces from string in variable von
+von=${von//[[:blank:]]/}
+
+# check if sms in format of "Leitstelle"
+if [[ $sms_inhalt =~ [0-9]{2}.*[0-9]{2} ]]; then
+
+  IFS='*' read -r -a array <<< "$sms_inhalt"
+
+  # Datum (dd.mm) | 11.03
+  e_date="${array[0]}"
+  # ${string/pattern/$replacement}
+  e_date="${e_date/cubos:\/\/ga/}"
+  # Uhrzeit (hh:mm) | 11:04
+  e_time="${array[1]}"
+  # Stichwort |  B2.01
+  stichwort="${array[2]}"
+  # Meldebild (max. 20 char) | Rauchentwicklung
+  meldebild="${array[3]}"
+  # Ortsteil (chars not limited) | Motabaur (WW)
+  ort="${array[4]}"
+  # Straße (chars not limited) | Eichwiese
+  str="${array[5]}"
+  # Hausnummer (chars not limited) | 5
+  hausnr="${array[6]}"
+  # Objekt (chars not limited) | Leitstelle Montabaur
+  e_objekt="${array[7]}"
+  # Einsatzort Bemerkung (max. 30 chars) | 1.OG
+  e_ort_bem="${array[8]}"
+  # Einsatzanlass Bemerkung | Rauch aus dem Fenster
+  e_an_bem="${array[9]}"
+
+  # format address via helper python3 script
+  formatted_address=$(/usr/bin/python3 /usr/local/bin/map_api.py --ort "$ort" --street "$str" --hausnr "$hausnr")
+
+  # write to database
+  mysql --user="{{ db_user }}" --password="{{ db_pass }}" -D "{{ db_name }}" -e "INSERT INTO einsaetze (e_datum, e_uhrzeit, e_stichwort, e_meldebild, e_ortsteil, e_strasse, e_hausnummer, e_objekt, e_objekt_bem, e_anlass_bem, von) VALUES ('$e_date', '$e_time', '$stichwort', '$meldebild', '$ort', '$str', '$hausnr', '$e_objekt', '$e_ort_bem',  '$e_an_bem', '$von');"
+
+else
+
+  e_date=""
+  e_time=""
+  stichwort=""
+  meldebild=""
+  ort=""
+  str=""
+  hausnr=""
+  e_objekt="$sms_inhalt"
+  e_ort_bem=""
+  e_an_bem=""
+  $formatted_address=""
+
+fi
+
+# power on hdmi port
+vcgencmd display_power 1
+
+# enable monitor (dpms) by simulate mousemove
+xdotool mousemove 9000 9000
+
+# generate html to display alarm
+echo '
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Freiwillige Feuerwehr Krautscheid</title>
+    <link href="include/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/favicon.png" sizes="32x32">
+    <style>
+        h1 {
+            color:red;
+            font-size: 60px;
+        }
+        h3 {
+            font-size: 45px;
+        }
+        p {
+            font-size: 15px;
+        }
+    </style>
+    <!-- jquery has to be loaded before bootstrap because bootstrap is using jquery functions -->
+    <script src="include/jquery-3.3.1.min.js"></script>
+    <script src="include/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+</head>
+<body>
+        <div class="row">
+            <div class="col-lg-6">
+                <h1 class="text-center"> '$stichwort' '$meldebild' </h1>
+                <h3 class="text-center"> Adresse: <mark> '$ort' '$str' '$hausnr' </mark> </h3>
+                <h3 class="text-center"> Objekt: <mark> '$e_objekt' '$e_ort_bem' </mark> </h3>
+                <h3 class="text-center"> Bemerkungen: '$e_an_bem' </h3>
+                <br />
+                <p class="text-center"> '$e_date' '$e_time' Uhr </p>
+            </div>
+            <!-- sidebar -->
+            <div class="col-lg-6">
+                <iframe width="100%" height="1000" frameborder="0" style="border:0" src="https://www.google.com/maps/embed/v1/directions?key={{ gapi_key }}&origin={{ origin_address }}&destination='$formatted_address'&maptype=roadmap"></iframe>
+            </div>
+        </div>
+    <!-- footer -->
+    <!-- div class="jumbotron text-center" style="margin-bottom:0; margin-top:15px;">
+      &copy; Copyright 2020 | Freiwillige Feuerwehr Krautscheid
+    </div -->
+    
+</body>
+<!-- webcode was written by Marko Weiß, member of Freiwillige Feuerwehr Krautscheid -->
+</html>' > /home/pi/alamierung.html
+
+# copy generated html file into web space
+sudo cp /home/pi/alamierung.html /var/www/html/index.html
+
+# start chromium in kiosk mode
+nohup chromium-browser --kiosk --touch-events=enabled --disable-pinch --noerrdialogs  --disable-session-crashed-bubble --incognito --disable-infobars --disable-features=TranslateUI --disable-component-update --overscroll-history-navigation=0 http://pi-halle &
+
+#--simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT' --app=$(/home/pi/scripts/script.sh)
+
+echo "Trigger display script on pi-umkleide"
+ssh pi@pi-umkleide -T "sh /usr/local/bin/sms_event_pi.sh" &
+
+fi

@@ -1,0 +1,18 @@
+---
+# set wallpaper
+- name: set wallpaper
+  shell:
+    cmd: DISPLAY=":0" /usr/bin/pcmanfm --set-wallpaper /home/pi/background.jpg
+  args:
+    executable: /bin/bash
+  become_user: pi
+
+# older raspian versions are creating autostart in local pi profile, to force pi to also renew this file it neeeds to be purged
+- name: delete local autostart
+  file:
+    path: /home/pi/.config/lxsession/LXDE-pi/autostart
+    state: absent
+
+# handler to reboot pi
+- name: reboot
+  reboot:

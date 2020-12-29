@@ -1,0 +1,15 @@
+#ansible managed
+@lxpanel --profile LXDE-pi
+@pcmanfm --desktop --profile LXDE-pi
+@xscreensaver -no-splash
+# hide cursor
+@unclutter -idle 0
+# disable screensaver
+@xset s off
+# disable screensaver blank
+@xset s noblank
+# set dpms timer
+@xset dpms {{ DISPLAY_TIMER }} {{ DISPLAY_TIMER }} {{ DISPLAY_TIMER }}
+# just for testing
+#@xset dpms 120 120 120
+#@xset s off -dpms
