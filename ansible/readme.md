@@ -26,7 +26,7 @@
 
 ## How does it work?
 
-* SMS is received from "Leitstelle" in group alarm format cubos://ga 21.07.*05:51*B2.07*Rachentwicklung*Motabaur (WW)*Eichwiese*5*Leitstelle Montabaur*1.0G*Rach aus dem Fenster
+* SMS is received from "Leitstelle" in group alarm format
   * Meldebild (max. 20 char) | Rauchentwicklung
   * Ortsteil (chars not limited) | Motabaur (WW)
   * Straße (chars not limited) | Eichwiese
@@ -37,7 +37,13 @@
 * SMS is written into database
 * SMS is displayed on screen
 
-## additional infos
+SMS alarm format
+
+```
+cubos://ga 21.07.*05:51*B2.07*Rachentwicklung*Motabaur (WW)*Eichwiese*5*Leitstelle Montabaur*1.0G*Rach aus dem Fenster
+```
+
+## Additional infos
 
 * master needs mobile signal (mobile coverage needed)
 * mobile number of SIM inserted into master display has to be registered at "Leitstelle"
@@ -47,7 +53,7 @@
   * google api key enabled for geocode & maps embed api is needed (you can get it for free, you just need a google account)
   * note: only address, nothing else is send to google. If you like you can use as source address an address near your fire department. Not directly your fire department. So that at least google cannot see directly that for all your queries a fire department is set as source address.
 
-## Installation
+## Deployment
 
 * just download pi os with desktop, copy it to your sd card and enable ssh
 * run playbook
