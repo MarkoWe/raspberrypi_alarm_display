@@ -1,5 +1,5 @@
 ---
-- name: set up alarm display slave
+- name: deploy alarm display slave
   hosts: piumkleide
   gather_facts: yes
   become: yes

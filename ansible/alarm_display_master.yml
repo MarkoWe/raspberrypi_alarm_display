@@ -1,5 +1,5 @@
 ---
-- name: set up alarm display master
+- name: deploy alarm display master
   hosts: pihalle
   gather_facts: yes
   become: yes
